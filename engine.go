@@ -1,6 +1,22 @@
 package main
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"fmt"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
+
+type GameElement interface {
+	Dimensions() (int, int)
+	Rect() (int, int, int, int)
+}
+
+func Describe(e GameElement) {
+	w, h := e.Dimensions()
+	x1, y1, x2, y2 := e.Rect()
+	fmt.Printf("Dimensions: %d, %d\n", w, h)
+	fmt.Printf("Rect: %d, %d, %d, %d\n", x1, y1, x2, y2)
+}
 
 func (g *Game) Update() error {
 	switch g.state {
