@@ -14,17 +14,32 @@ type Player struct {
 	image    ebiten.Image
 }
 
+func (p *Player) Describe() string {
+	return "Player"
+}
+
 func (p *Player) Dimensions() (width int, height int) {
 	return p.image.Bounds().Dx(), p.image.Bounds().Dy()
 }
 
-func (p *Player) Rect() (x1 int, y1 int, x2 int, y2 int) {
-	pos := p.position
+func (b *Player) IntRect() IntRect {
+	pos := b.position
 
 	int_x := int(pos.x)
 	int_y := int(pos.y)
-	int_x2 := int_x + p.image.Bounds().Dx()
-	int_y2 := int_y + p.image.Bounds().Dy()
+	int_x2 := int_x + b.image.Bounds().Dx()
+	int_y2 := int_y + b.image.Bounds().Dy()
 
-	return int_x, int_y, int_x2, int_y2
+	return IntRect{int_x, int_y, int_x2, int_y2}
+}
+
+func (b *Player) Rect() Rect {
+	pos := b.position
+
+	int_x := pos.x
+	int_y := pos.y
+	int_x2 := int_x + float64(b.image.Bounds().Dx())
+	int_y2 := int_y + float64(b.image.Bounds().Dy())
+
+	return Rect{int_x, int_y, int_x2, int_y2}
 }

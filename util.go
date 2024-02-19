@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -10,11 +11,20 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-func calculateVelocityComponents(velocity float64, angleDegrees float64) Point {
+func calculateVelocityComponents(feetPerSecond float64, angleDegrees float64) Vector {
 	angleRadians := angleDegrees * math.Pi / 180 // Convert angle from degrees to radians
-	vx := velocity * math.Cos(angleRadians)
-	vy := velocity * math.Sin(angleRadians)
-	return Point{vx, vy}
+	vx := feetPerSecond * math.Cos(angleRadians)
+	vy := feetPerSecond * math.Sin(angleRadians)
+
+	// Help me translate the feet per second to match the screen size
+	// 1 foot = 32 pixels
+	// 1 foot per second = 32 pixels per second
+	// 1 second = 60 frames
+	// 1 foot per second = 32 / 60 pixels per frame
+	// 1 foot per second = 0.5333333333333333 pixels per frame
+
+	fmt.Println("Vx:", vx, "Vy:", vy)
+	return Vector{vx, vy}
 }
 
 func createBallImage(size int) *ebiten.Image {

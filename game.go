@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 type Game struct {
@@ -21,42 +23,44 @@ func (g *Game) setup() {
 }
 
 func (g *Game) handleServeInput() {
-	g.ball.position.x = SCREEN_WIDTH / 2
-	g.ball.position.y = SCREEN_HEIGHT / 2
+	// g.ball.position.x = SCREEN_WIDTH / 2
+	// g.ball.position.y = SCREEN_HEIGHT / 2
 	g.state = STATE_PLAY
 	g.ball.motion_state = BALL_MOVING
+	fmt.Println("Throwing ball at vector", g.ball.vector)
 }
 
 func (g *Game) handlePlayInput() {
-	nx1, _, nx2, _ := g.net.Rect()
-	p1x1, _, p1x2, _ := g.player1.Rect()
-	p2x1, _, p2x2, _ := g.player2.Rect()
+	nr := g.net.IntRect()
+	p1r := g.player1.IntRect()
+	p2r := g.player2.IntRect()
 
 	// Allow player1 to move left and right using A and D keys
-	if ebiten.IsKeyPressed(ebiten.KeyA) && p1x1 >= 0 {
+	if ebiten.IsKeyPressed(ebiten.KeyA) && p1r.x1 >= 0 {
 		g.player1.position.x -= 4
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyD) && p1x2 <= nx1 {
+	if ebiten.IsKeyPressed(ebiten.KeyD) && p1r.x2 <= nr.x1 {
 		g.player1.position.x += 4
 	}
 
 	// Allow player2 to move left and right using arrow keys
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) && p2x1 >= nx2 {
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) && p2r.x1 >= nr.x2 {
 		g.player2.position.x -= 4
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyRight) && p2x2 <= SCREEN_WIDTH {
+	if ebiten.IsKeyPressed(ebiten.KeyRight) && p2r.x2 <= SCREEN_WIDTH {
 		g.player2.position.x += 4
 	}
 }
 
 func (g *Game) detectWallCollision() {
 	vec := g.ball.vector
-	bx1, by1, bx2, by2 := g.ball.Rect()
+	br := g.ball.IntRect()
+	bx1, by1, bx2, by2 := br.x1, br.y1, br.x2, br.y2
 	ball_width, ball_height := g.ball.Dimensions()
 
 	if bx1 <= 0 || bx2 >= SCREEN_WIDTH {
-		fmt.Println("Wall collision detected")
-		vec.x = -vec.x * BOUNCE_EFFICIENCY
+		// fmt.Println("Wall collision detected, vec.x was", vec.x, " and now ", -vec.x*BOUNCE_EFFICIENCY)
+		g.ball.setXVector(-vec.x*BOUNCE_EFFICIENCY, "wall collision")
 
 		if bx1 <= 0 {
 			g.ball.position.x = 0
@@ -68,7 +72,7 @@ func (g *Game) detectWallCollision() {
 
 	if by1 < 0 || by2 >= SCREEN_HEIGHT {
 		fmt.Println("Wall collision detected")
-		vec.y = -vec.y * BOUNCE_EFFICIENCY
+		g.ball.setYVector(-vec.y*BOUNCE_EFFICIENCY, "wall collision")
 
 		if by1 < 0 {
 			g.ball.position.y = 0
@@ -83,22 +87,18 @@ func (g *Game) detectWallCollision() {
 func (g *Game) detectNetCollision() {
 	// pos := g.ball.position
 	vec := g.ball.vector
-	bx1, _, bx2, by2 := g.ball.Rect()
-	nx1, ny1, nx2, _ := g.net.Rect()
-
-	// ball_width, ball_height := g.ball.Dimensions()
-
-	// get x position of net's left boundary
-
-	// print net boundaries
-	// fmt.Println("Net left, right, top: ", net_left_boundary, net_right_boundary, net_top_boundary)
-
-	// get y position of net's top boundary
+	br := g.ball.IntRect()
+	nr := g.net.IntRect()
+	bx1, by1, bx2, by2 := br.x1, br.y1, br.x2, br.y2
+	nx1, ny1, nx2, ny2 := nr.x1, nr.y1, nr.x2, nr.y2
 
 	if by2 > ny1 {
+		// show ball and net rect
+		fmt.Println("Ball rect: ", bx1, by1, bx2, by2, "; Net rect: ", nx1, ny1, nx2, ny2)
+
 		// fmt.Println("Net collision detected")
 		if bx2 > nx1 || bx1 < nx2 {
-			vec.x = -vec.x * BOUNCE_EFFICIENCY
+			g.ball.setXVector(-vec.x*BOUNCE_EFFICIENCY, "net collision")
 			// } else {
 			// vec.y = -vec.y * BOUNCE_EFFICIENCY
 		}
@@ -107,35 +107,33 @@ func (g *Game) detectNetCollision() {
 }
 
 func (g *Game) detectPlayerCollision(player *Player) {
-	// pos := g.ball.position
 	vec := g.ball.vector
-	bx1, by1, bx2, by2 := g.ball.Rect()
-	// ball_width, ball_height := g.ball.Dimensions()
+	br := g.ball.IntRect()
+	bx1, by1, bx2, by2 := br.x1, br.y1, br.x2, br.y2
 
-	px1, py1, px2, py2 := player.Rect()
-	// player_width, player_height := player.Dimensions()
+	pr := player.IntRect()
+	px1, py1, px2, py2 := pr.x1, pr.y1, pr.x2, pr.y2
 
-	// ball's right boundary has collided with player's left boundary
-	// or ball's left boundary has collided with player's right boundary
-	// or ball's bottom boundary has collided with player's top boundary
-	if bx2 >= px1 && bx1 <= px2 && by2 >= py1 && by1 <= py2 {
-		fmt.Println("Player collision detected ", player.name)
-		if bx2 >= px1 && bx1 <= px2 && by2 >= py1 {
-			vec.x = -vec.x * BOUNCE_EFFICIENCY
-		} else {
-			vec.y = -vec.y * BOUNCE_EFFICIENCY
+	collision, collisionVector := detectCollision(g.ball.Rect(), player.Rect(), *g.ball.vector, ZeroVector)
+	if collision {
+		fmt.Println("Player ", player.name, " detected with vector:", collisionVector)
+	}
+
+	playerLeftBoundaryCollision := bx2 >= px1 && bx1 <= px1 && by2 >= py1 && by1 <= py2
+	playerRightBoundaryCollision := bx1 <= px2 && bx2 >= px2 && by2 >= py1 && by1 <= py2
+	playerTopBoundaryCollision := by2 >= py1 && by1 <= py1 && bx2 >= px1 && bx1 <= px2
+
+	if playerLeftBoundaryCollision || playerTopBoundaryCollision || playerRightBoundaryCollision {
+		if playerLeftBoundaryCollision && vec.x > 0 {
+			g.ball.setXVector(-vec.x, "collision w player left boundary")
+			fmt.Println("Ball rect: ", bx1, by1, bx2, by2, "; Player rect: ", px1, py1, px2, py2)
+		} else if playerRightBoundaryCollision && vec.x < 0 {
+			g.ball.setXVector(-vec.x, "collision w player right boundary")
 		}
-		// vec.y = -vec.y * BOUNCE_EFFICIENCY
-		// if by1 < py1 {
-		// 	g.ball.position.y = float64(py1 - ball_height)
-		// } else {
-		// 	g.ball.position.y = float64(py2)
-		// }
-		// if bx1 < px1 {
-		// 	g.ball.position.x = float64(px1 - ball_width)
-		// } else {
-		// 	g.ball.position.x = float64(px2)
-		// }
+
+		if playerTopBoundaryCollision && vec.y > 0 {
+			g.ball.setYVector(-vec.y, "collision w player top boundary")
+		}
 	}
 }
 
@@ -143,9 +141,14 @@ func (g *Game) moveBall() {
 	pos := g.ball.position
 	vec := g.ball.vector
 
-	vec.y += GRAVITY * TIME_STEP
+	accelerationY := GRAVITY * TIME_STEP
+
+	vec.y += accelerationY
 	pos.x += vec.x * TIME_STEP
 	pos.y += vec.y * TIME_STEP
+
+	// print position of ball and vector
+	// fmt.Println("Acceleration: ", accelerationY, "; Ball position: ", pos.x, pos.y, "; Ball vector: ", vec.x, vec.y)
 
 	g.detectWallCollision()
 	g.detectNetCollision()
@@ -173,17 +176,12 @@ func (g *Game) DrawPlayer(screen *ebiten.Image, player *Player) {
 }
 
 func (g *Game) DrawNet(screen *ebiten.Image) {
-	opts := &ebiten.DrawImageOptions{}
+	// Get the rect of the net
+	nr := g.net.Rect()
+	nx1, ny1, nx2, ny2 := nr.x1, nr.y1, nr.x2, nr.y2
 
-	midScreenX := float64(SCREEN_WIDTH) / 2
-	midScreenY := float64(SCREEN_HEIGHT) / 2
-	lineThickness, _ := g.net.Dimensions()
-
-	// Position the scaled image to the middle of the screen, starting at the halfway point on the y-axis
-	opts.GeoM.Translate(midScreenX-float64(lineThickness)/2, midScreenY)
-
-	// Draw the line on the screen
-	screen.DrawImage(&g.net.image, opts)
+	// using ebiten v2, draw a rectangle based on the net rect
+	ebitenutil.DrawRect(screen, nx1, ny1, nx2-nx1, ny2-ny1, color.RGBA{0, 255, 0, 255})
 }
 
 func (g *Game) DrawBall(screen *ebiten.Image) {

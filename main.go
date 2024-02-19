@@ -35,10 +35,10 @@ func main() {
 
 	netImage := createNetImage()
 
-	ball_velocity := calculateVelocityComponents(450, 60)
+	ball_velocity := calculateVelocityComponents(150, 30)
 
 	ball := &Ball{
-		position:     &Point{x: 50, y: 50},
+		position:     &Point{x: 50, y: 10},
 		image:        *ball_image,
 		vector:       &ball_velocity,
 		motion_state: BALL_RESTING,
