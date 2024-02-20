@@ -84,3 +84,60 @@ func loadImage(path string, scaleX, scaleY float64) (*ebiten.Image, error) {
 
 	return scaledImg, nil
 }
+
+func detectInnerCollision(objA, objB GameObject, vectorA, vectorB Vector) (bool, Vector) {
+	rectA := objA.Rect()
+	rectB := objB.Rect()
+
+	if vectorA.x > 0 && rectB.x2-rectA.x2 <= 0 {
+		return true, Vector{-1, 0}
+	} else if vectorA.x < 0 && rectA.x1-rectB.x1 <= 0 {
+		return true, Vector{1, 0}
+	}
+
+	if vectorA.y > 0 && rectB.y2-rectA.y2 <= 0 {
+		return true, Vector{0, -1}
+	} else if vectorA.y < 0 && rectA.y1-rectB.y1 <= 0 {
+		return true, Vector{0, 1}
+	}
+
+	return false, Vector{0, 0}
+}
+
+// detectCollision checks if two rectangles are colliding with a minimum 10% overlap.
+// It returns a boolean indicating collision and the collision vector.
+func detectCollision(objA, objB GameObject, vectorA, vectorB Vector, overlapThreshold float64) (bool, Vector) {
+	rectA := objA.Rect()
+	rectB := objB.Rect()
+
+	// Calculate the relative movement of rectA towards rectB
+	relativeVector := Vector{x: vectorA.x - vectorB.x, y: vectorA.y - vectorB.y}
+
+	overlapX := math.Min(rectA.x2, rectB.x2) - math.Max(rectA.x1, rectB.x1)
+	overlapY := math.Min(rectA.y2, rectB.y2) - math.Max(rectA.y1, rectB.y1)
+
+	if overlapX > overlapThreshold && overlapY > overlapThreshold {
+
+		fmt.Println("Collision between", objA.Describe(), "and", objB.Describe())
+
+		// print relative vector and overlap
+		fmt.Println("Relative Vector:", relativeVector, "OverlapX:", overlapX, "OverlapY:", overlapY)
+
+		// Standard collision detection logic for outer walls
+		if overlapX < overlapY {
+			if relativeVector.x > 0 {
+				return true, Vector{-1, 0} // Collision on A's right side
+			} else {
+				return true, Vector{1, 0} // Collision on A's left side
+			}
+		} else {
+			if relativeVector.y > 0 {
+				return true, Vector{0, -1} // Collision on A's bottom side
+			} else {
+				return true, Vector{0, 1} // Collision on A's top side
+			}
+		}
+	}
+
+	return false, Vector{0, 0}
+}

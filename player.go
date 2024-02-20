@@ -15,7 +15,7 @@ type Player struct {
 }
 
 func (p *Player) Describe() string {
-	return "Player"
+	return p.name
 }
 
 func (p *Player) Dimensions() (width int, height int) {

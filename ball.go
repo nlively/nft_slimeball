@@ -53,3 +53,19 @@ func (b *Ball) Rect() Rect {
 
 	return Rect{int_x, int_y, int_x2, int_y2}
 }
+
+func (b *Ball) bounce(collisionVector Vector) {
+	switch collisionVector.x {
+	case -1:
+		b.setXVector(-b.vector.x, "collision w left boundary")
+	case 1:
+		b.setXVector(-b.vector.x, "collision w right boundary")
+	}
+
+	switch collisionVector.y {
+	case -1:
+		b.setYVector(-b.vector.y, "collision w top boundary")
+	case 1:
+		b.setYVector(-b.vector.y, "collision w bottom boundary")
+	}
+}
