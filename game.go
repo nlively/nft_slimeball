@@ -112,13 +112,12 @@ func (g *Game) moveBall() {
 	g.detectPlayerCollision(g.player1)
 	g.detectPlayerCollision(g.player2)
 
-	// If the ball has stopped moving, set its motion state to resting
-	if (pos.x == g.ball.last_position.x) && (pos.y == g.ball.last_position.y) {
+	if g.ball.hasStoppedMoving() {
 		g.ball.motion_state = BALL_RESTING
 	}
 
 	// Note the ball's position for the next frame
-	g.ball.last_position = *pos
+	g.ball.savePosition(*pos)
 }
 
 func (g *Game) DrawPlayer(screen *ebiten.Image, player *Player) {

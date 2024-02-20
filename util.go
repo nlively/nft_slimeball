@@ -86,8 +86,8 @@ func loadImage(path string, scaleX, scaleY float64) (*ebiten.Image, error) {
 }
 
 func detectInnerCollision(objA, objB GameObject, vectorA, vectorB Vector) (bool, Vector) {
-	rectA := objA.Rect()
-	rectB := objB.Rect()
+	rectA := objA.IntRect()
+	rectB := objB.IntRect()
 
 	if vectorA.x > 0 && rectB.x2-rectA.x2 <= 0 {
 		return true, Vector{-1, 0}
@@ -140,4 +140,9 @@ func detectCollision(objA, objB GameObject, vectorA, vectorB Vector, overlapThre
 	}
 
 	return false, Vector{0, 0}
+}
+
+func roundToDecimalPlaces(num float64, places int) float64 {
+	shift := math.Pow(10, float64(places))
+	return math.Round(num*shift) / shift
 }
